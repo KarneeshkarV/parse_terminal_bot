@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BTC Bot Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Shared Toolbar ──────────────────────────────────────────── -->
+  <header id="toolbar">
+    <div class="toolbar-brand">
+      <span class="brand-mark">◈</span>
+      <span class="brand-name">POLYBOT</span>
+      <span class="brand-sub">BTC/USD · Polymarket</span>
+    </div>
+
+    <div class="toolbar-main-tabs">
+      <button class="main-tab active" data-view="dashboard">
+        <span class="main-tab-icon">⬡</span> Dashboard
+      </button>
+      <button class="main-tab" data-view="terminal">
+        <span class="main-tab-icon">⌘</span> Terminal
+      </button>
+    </div>
+
+    <div class="toolbar-right">
+      <span id="conn-status" class="status-disconnected">● Connecting…</span>
+      <span id="live-clock"></span>
+
+      <!-- Terminal-only controls (hidden when Dashboard active) -->
+      <div id="terminal-controls" class="terminal-controls hidden">
+        <select id="pane-select">
+          <option value="__all__">All panes</option>
+        </select>
+        <input id="search-input" type="text" placeholder="Search…" autocomplete="off" spellcheck="false">
+        <form id="add-pane-form">
+          <input id="add-pane-id"    type="text" placeholder="Pane ID (e.g. Session:0.0)" required>
+          <input id="add-pane-label" type="text" placeholder="Label (optional)">
+          <button type="submit">+ Pane</button>
+        </form>
+      </div>
+
+      <!-- Dashboard-only controls -->
+      <div id="dashboard-controls" class="dashboard-controls">
+        <button id="refresh-btn" class="refresh-btn" title="Refresh now">
+          <span id="refresh-icon">↻</span> Refresh
+        </button>
+        <span id="last-refresh" class="last-refresh">—</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ────────────────────────────────────────────── -->
+  <div id="main-content">
+
+    <!-- Dashboard View -->
+    <div id="view-dashboard" class="view active">
+
+      <!-- Stat Cards -->
+      <section class="stat-grid">
+        <div class="stat-card" id="sc-windows">
+          <div class="stat-label">Total Windows</div>
+          <div class="stat-value" id="sv-windows">—</div>
+          <div class="stat-sub" id="ss-windows">15-min intervals scanned</div>
+        </div>
+        <div class="stat-card" id="sc-bets">
+          <div class="stat-label">Bets Placed</div>
+          <div class="stat-value" id="sv-bets">—</div>
+          <div class="stat-sub" id="ss-bets">of total windows</div>
+        </div>
+        <div class="stat-card" id="sc-winrate">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" id="sv-winrate">—</div>
+          <div class="stat-sub" id="ss-winrate">W / L</div>
+        </div>
+        <div class="stat-card" id="sc-pnl">
+          <div class="stat-label">Total P&amp;L</div>
+          <div class="stat-value" id="sv-pnl">—</div>
+          <div class="stat-sub" id="ss-pnl">cumulative</div>
+        </div>
+        <div class="stat-card" id="sc-balance">
+          <div class="stat-label">Current Balance</div>
+          <div class="stat-value" id="sv-balance">—</div>
+          <div class="stat-sub" id="ss-balance">initial: —</div>
+        </div>
+        <div class="stat-card" id="sc-sessions">
+          <div class="stat-label">Sessions</div>
+          <div class="stat-value" id="sv-sessions">—</div>
+          <div class="stat-sub" id="ss-sessions">run files total</div>
+        </div>
+      </section>
+
+      <!-- Algo + Meta bar -->
+      <div class="meta-bar">
+        <span class="meta-item">
+          <span class="meta-label">ALGO</span>
+          <span id="meta-algo" class="meta-val">—</span>
+        </span>
+        <span class="meta-sep">·</span>
+        <span class="meta-item">
+          <span class="meta-label">LAST UPDATE</span>
+          <span id="meta-updated" class="meta-val">—</span>
+        </span>
+        <span class="meta-sep">·</span>
+        <span class="meta-item">
+          <span class="meta-label">TOTAL RECORDS</span>
+          <span id="meta-records" class="meta-val">—</span>
+        </span>
+        <span class="meta-sep">·</span>
+        <span class="meta-item">
+          <span class="meta-label">SKIPS</span>
+          <span id="meta-skips" class="meta-val">—</span>
+        </span>
+        <span class="meta-sep">·</span>
+        <span class="meta-item">
+          <span class="meta-label">INVALID</span>
+          <span id="meta-invalid" class="meta-val">—</span>
+        </span>
+      </div>
+
+      <!-- Daily P&L -->
+      <div id="daily-pnl-wrap">
+        <div class="daily-pnl-header">
+          <span class="tth-title">Daily P&amp;L</span>
+          <span id="daily-pnl-days" class="tth-count">—</span>
+        </div>
+        <div class="dpnl-row dpnl-thead">
+          <span class="dpnl-th">Date</span>
+          <span class="dpnl-th">Bar</span>
+          <span class="dpnl-th" style="text-align:right">P&amp;L (Return %)</span>
+          <span class="dpnl-th" style="text-align:right">Bets</span>
+          <span class="dpnl-th" style="text-align:right">W / L</span>
+          <span class="dpnl-th" style="text-align:right">Win %</span>
+        </div>
+        <div id="daily-pnl-rows"></div>
+      </div>
+
+      <!-- Trade Table -->
+      <div class="trade-table-wrap">
+        <div class="trade-table-header">
+          <span class="tth-title">Trade History</span>
+          <span id="tth-count" class="tth-count">0 records</span>
+        </div>
+        <div class="trade-table-scroll">
+          <table class="trade-table">
+            <thead>
+              <tr>
+                <th>Time (UTC)</th>
+                <th>Market Window</th>
+                <th>Prediction</th>
+                <th>Side</th>
+                <th>Exit Reason</th>
+                <th class="num">P&amp;L</th>
+                <th class="num">Balance</th>
+                <th class="num">BTC Diff</th>
+                <th class="num">Stake</th>
+              </tr>
+            </thead>
+            <tbody id="trade-tbody">
+              <tr class="trade-loading">
+                <td colspan="9"><span class="loading-pulse">Loading trade data…</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terminal View -->
+    <div id="view-terminal" class="view">
+      <nav id="pane-tabs"></nav>
+      <main id="pane-content"></main>
+    </div>
+
+  </div><!-- /#main-content -->
+</div><!-- /#app -->
+
+<script>
+  // Live clock (IST)
+  const _clockEl = document.getElementById('live-clock');
+  function _tick() {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const day = String(ist.getDate()).padStart(2, '0');
+    const month = String(ist.getMonth() + 1).padStart(2, '0');
+    const time = ist.toLocaleTimeString('en-US', { hour12: false });
+    _clockEl.textContent = `${day}/${month} ${time} IST`;
+  }
+  _tick();
+  setInterval(_tick, 1000);
+</script>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
