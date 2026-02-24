@@ -12,7 +12,7 @@ initial_panes = ["Polymarket_base:3.0"]
 [buffer]
 replay_lines = 200
 channel_capacity = 512
-pipe_channel_capacity = 128
 
 [trades]
-data_dir = "/home/karneeshkar/Desktop/personal/Polymarket_base/polymarket_api/btc_backtest/data/btc_live_trades"
+python_data_dir = "/home/karneeshkar/Desktop/personal/Polymarket/Polymarket_py/polymarket_api/btc_backtest/data/btc_live_trades"
+rust_data_dir = "/home/karneeshkar/Desktop/personal/Polymarket/Polymarket_rust/data/btc_live_trades"

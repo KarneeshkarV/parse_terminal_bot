@@ -9,7 +9,7 @@ use futures::{SinkExt, StreamExt};
 use serde::Deserialize;
 use tokio::sync::broadcast;
 use tokio::time::{interval, Duration};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::server::api::AppState;
 use crate::types::{ClientCommand, EventType, PaneEvent};
@@ -23,9 +23,9 @@ const PING_INTERVAL_SECS: u64 = 30;
 
 /// WebSocket upgrade handler
 pub async fn ws_handler(
-    ws:                  WebSocketUpgrade,
-    Query(query):        Query<WsQuery>,
-    State(state):        State<AppState>,
+    ws: WebSocketUpgrade,
+    Query(query): Query<WsQuery>,
+    State(state): State<AppState>,
 ) -> impl IntoResponse {
     let pane_filter = query.pane_id.clone();
     ws.on_upgrade(move |socket| handle_socket(socket, state, pane_filter))
@@ -39,15 +39,20 @@ async fn handle_socket(socket: WebSocket, state: AppState, pane_filter: Option<S
     // Send snapshot for initial pane_id
     if let Some(ref pane_id) = pane_filter {
         if let Some((lines, total)) = state.manager.registry().snapshot(pane_id) {
-            let stream_id = state.manager.registry()
+            let stream_id = state
+                .manager
+                .registry()
                 .stream_id(pane_id)
                 .unwrap_or_default();
 
             let snapshot_event = PaneEvent {
                 stream_id,
-                pane_id:   pane_id.clone(),
+                pane_id: pane_id.clone(),
                 timestamp: chrono::Utc::now().timestamp_millis(),
-                event_type: EventType::Snapshot { lines, total_lines: total },
+                event_type: EventType::Snapshot {
+                    lines,
+                    total_lines: total,
+                },
             };
 
             if let Ok(json) = serde_json::to_string(&snapshot_event) {
@@ -131,9 +136,9 @@ async fn handle_socket(socket: WebSocket, state: AppState, pane_filter: Option<S
 }
 
 async fn handle_command(
-    cmd:   ClientCommand,
+    cmd: ClientCommand,
     state: &AppState,
-    sink:  &mut futures::stream::SplitSink<WebSocket, Message>,
+    sink: &mut futures::stream::SplitSink<WebSocket, Message>,
 ) {
     match cmd {
         ClientCommand::Replay { pane_id, lines } => {
@@ -142,21 +147,32 @@ async fn handle_command(
                     let skip = evts.len().saturating_sub(n);
                     evts = evts.into_iter().skip(skip).collect();
                 }
-                let stream_id = state.manager.registry()
+                let stream_id = state
+                    .manager
+                    .registry()
                     .stream_id(&pane_id)
                     .unwrap_or_default();
                 let snap = PaneEvent {
                     stream_id,
-                    pane_id:   pane_id.clone(),
+                    pane_id: pane_id.clone(),
                     timestamp: chrono::Utc::now().timestamp_millis(),
-                    event_type: EventType::Snapshot { lines: evts, total_lines: total },
+                    event_type: EventType::Snapshot {
+                        lines: evts,
+                        total_lines: total,
+                    },
                 };
                 if let Ok(json) = serde_json::to_string(&snap) {
                     let _ = sink.send(Message::Text(json)).await;
                 }
             }
         }
-        ClientCommand::Subscribe   { .. } => { /* subscriptions are implicit via pane_id query param */ }
-        ClientCommand::Unsubscribe { .. } => { /* for future multi-pane subscriptions */ }
+        ClientCommand::Subscribe { pane_id } => {
+            debug!(pane_id, "subscribe command received");
+            // subscriptions are implicit via pane_id query param
+        }
+        ClientCommand::Unsubscribe { pane_id } => {
+            debug!(pane_id, "unsubscribe command received");
+            // reserved for future multi-pane subscriptions
+        }
     }
 }

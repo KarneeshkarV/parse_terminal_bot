@@ -1,19 +1,19 @@
-use vte::Perform;
 use crate::types::AnsiStyle;
+use vte::Perform;
 
 /// Implements vte::Perform, collects clean text + current ANSI style.
 pub struct BotPerformer {
     pub clean_buf: String,
-    pub style:     AnsiStyle,
-    pub lines:     Vec<(String, AnsiStyle)>,
+    pub style: AnsiStyle,
+    pub lines: Vec<(String, AnsiStyle)>,
 }
 
 impl BotPerformer {
     pub fn new() -> Self {
         Self {
             clean_buf: String::new(),
-            style:     AnsiStyle::default(),
-            lines:     Vec::new(),
+            style: AnsiStyle::default(),
+            lines: Vec::new(),
         }
     }
 
@@ -47,9 +47,7 @@ impl Perform for BotPerformer {
             return; // only handle SGR
         }
 
-        let nums: Vec<u16> = params.iter()
-            .flat_map(|sub| sub.iter().copied())
-            .collect();
+        let nums: Vec<u16> = params.iter().flat_map(|sub| sub.iter().copied()).collect();
 
         if nums.is_empty() || nums == [0] {
             self.style = AnsiStyle::default();
@@ -59,21 +57,24 @@ impl Perform for BotPerformer {
         let mut i = 0;
         while i < nums.len() {
             match nums[i] {
-                0  => self.style = AnsiStyle::default(),
-                1  => self.style.bold      = true,
-                2  => self.style.dim       = true,
-                3  => self.style.italic    = true,
-                4  => self.style.underline = true,
-                5  => self.style.blink     = true,
-                22 => { self.style.bold = false; self.style.dim = false; }
-                23 => self.style.italic    = false,
+                0 => self.style = AnsiStyle::default(),
+                1 => self.style.bold = true,
+                2 => self.style.dim = true,
+                3 => self.style.italic = true,
+                4 => self.style.underline = true,
+                5 => self.style.blink = true,
+                22 => {
+                    self.style.bold = false;
+                    self.style.dim = false;
+                }
+                23 => self.style.italic = false,
                 24 => self.style.underline = false,
-                25 => self.style.blink     = false,
-                39 => self.style.fg        = None,
-                49 => self.style.bg        = None,
+                25 => self.style.blink = false,
+                39 => self.style.fg = None,
+                49 => self.style.bg = None,
                 // Standard 16 foreground colors
                 n @ 30..=37 => self.style.fg = Some(ansi_color_name(n - 30)),
-                90..=97     => {} // bright colors — ignore for now
+                90..=97 => {} // bright colors — ignore for now
                 // 256-color fg: ESC[38;5;Nm
                 38 if nums.get(i + 1) == Some(&5) => {
                     if let Some(&n) = nums.get(i + 2) {

@@ -16,6 +16,8 @@ function renderSemantic(sem, raw, style) {
     case 'trade_action':    return renderTradeAction(sem);
     case 'trade_exit':      return renderTradeExit(sem);
     case 'session_summary': return renderSessionSummary(sem);
+    case 'rust_market_end': return renderRustMarketEnd(sem);
+    case 'rust_session_summary': return renderRustSessionSummary(sem);
     default:                return renderRaw(raw, style);
   }
 }
@@ -141,6 +143,48 @@ function renderSessionSummary(s) {
     <div class="ss-stat"><div class="ss-label">Win Rate</div><div class="ss-value">${s.win_rate.toFixed(1)}%</div></div>
     <div class="ss-stat"><div class="ss-label">Total P&L</div><div class="ss-value ${winCls}">${sign}$${s.total_pnl.toFixed(2)}</div></div>
     <div class="ss-stat ss-wide"><div class="ss-label">Final Balance</div><div class="ss-value">${s.final_balance.toFixed(2)}</div></div>
+  </div>
+</div>`;
+}
+
+function renderRustMarketEnd(s) {
+  const win = s.window_pnl >= 0;
+  const winSign = s.window_pnl >= 0 ? '+' : '-';
+  const sessionSign = s.session_pnl >= 0 ? '+' : '-';
+  const pnlCls = win ? 'pos' : 'neg';
+  const predCls = s.prediction === 'UP' ? 'pred-up'
+    : s.prediction === 'DOWN' ? 'pred-down'
+    : 'pred-skip';
+  return `
+<div class="card card-trade-exit ${win ? 'te-win' : 'te-loss'}">
+  <span class="te-icon">${win ? '✅' : '❌'}</span>
+  <span class="te-reason">${esc(s.mode)} · ${esc(s.market)}</span>
+  <span class="pred-badge ${predCls}">${esc(s.prediction)}</span>
+  <span class="te-pnl ${pnlCls}">${winSign}$${Math.abs(s.window_pnl).toFixed(2)}</span>
+  <span class="te-balance">session ${sessionSign}$${Math.abs(s.session_pnl).toFixed(2)}</span>
+  <span class="te-exit">${esc(s.exit_reason)} · ${s.wins}W/${s.losses}L (${s.skipped} skipped)</span>
+</div>`;
+}
+
+function renderRustSessionSummary(s) {
+  const sign = s.total_pnl >= 0 ? '+' : '';
+  const winCls = s.total_pnl >= 0 ? 'pos' : 'neg';
+  const finalBal = s.final_balance != null ? `$${s.final_balance.toFixed(2)}` : 'n/a';
+  return `
+<div class="card card-session-summary">
+  <div class="ss-title">▪ Rust Session Summary</div>
+  <div class="ss-grid">
+    <div class="ss-stat"><div class="ss-label">Mode</div><div class="ss-value">${esc(s.mode)}</div></div>
+    <div class="ss-stat"><div class="ss-label">Algo</div><div class="ss-value">${esc(s.algo)}</div></div>
+    <div class="ss-stat"><div class="ss-label">Duration</div><div class="ss-value">${s.duration_hours.toFixed(1)}h</div></div>
+    <div class="ss-stat"><div class="ss-label">Windows</div><div class="ss-value">${s.windows_seen}</div></div>
+    <div class="ss-stat"><div class="ss-label">Trades</div><div class="ss-value">${s.total_trades}</div></div>
+    <div class="ss-stat"><div class="ss-label">Skipped</div><div class="ss-value">${s.skipped}</div></div>
+    <div class="ss-stat"><div class="ss-label">Wins</div><div class="ss-value pos">${s.wins}</div></div>
+    <div class="ss-stat"><div class="ss-label">Losses</div><div class="ss-value neg">${s.losses}</div></div>
+    <div class="ss-stat"><div class="ss-label">Win Rate</div><div class="ss-value">${s.win_rate.toFixed(1)}%</div></div>
+    <div class="ss-stat"><div class="ss-label">Total P&L</div><div class="ss-value ${winCls}">${sign}$${Math.abs(s.total_pnl).toFixed(2)}</div></div>
+    <div class="ss-stat ss-wide"><div class="ss-label">Final Balance</div><div class="ss-value">${finalBal}</div></div>
   </div>
 </div>`;
 }

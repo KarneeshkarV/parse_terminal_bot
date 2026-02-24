@@ -45,11 +45,7 @@ impl PaneRegistry {
         }
     }
 
-    pub fn set_attached(
-        &self,
-        pane_id: &PaneId,
-        shutdown_tx: tokio::sync::oneshot::Sender<()>,
-    ) {
+    pub fn set_attached(&self, pane_id: &PaneId, shutdown_tx: tokio::sync::oneshot::Sender<()>) {
         let mut map = self.inner.write();
         if let Some(entry) = map.get_mut(pane_id) {
             entry.state = PaneState::Attached;
@@ -74,18 +70,17 @@ impl PaneRegistry {
 
     pub fn snapshot(&self, pane_id: &PaneId) -> Option<(Vec<PaneEvent>, u64)> {
         let map = self.inner.read();
-        map.get(pane_id)
-            .map(|e| (e.snapshot(), e.line_count))
+        map.get(pane_id).map(|e| (e.snapshot(), e.line_count))
     }
 
     pub fn list(&self) -> Vec<PaneInfo> {
         let map = self.inner.read();
         map.iter()
             .map(|(id, entry)| PaneInfo {
-                pane_id:    id.clone(),
-                stream_id:  entry.stream_id.clone(),
-                label:      entry.label.clone(),
-                state:      entry.state,
+                pane_id: id.clone(),
+                stream_id: entry.stream_id.clone(),
+                label: entry.label.clone(),
+                state: entry.state,
                 line_count: entry.line_count,
             })
             .collect()
@@ -96,7 +91,8 @@ impl PaneRegistry {
     }
 
     pub fn is_attached(&self, pane_id: &PaneId) -> bool {
-        self.inner.read()
+        self.inner
+            .read()
             .get(pane_id)
             .map(|e| e.state == PaneState::Attached)
             .unwrap_or(false)
@@ -109,18 +105,18 @@ impl PaneRegistry {
 
 #[derive(serde::Serialize, Clone)]
 pub struct PaneInfo {
-    pub pane_id:    PaneId,
-    pub stream_id:  String,
-    pub label:      Option<String>,
-    pub state:      PaneState,
+    pub pane_id: PaneId,
+    pub stream_id: String,
+    pub label: Option<String>,
+    pub state: PaneState,
     pub line_count: u64,
 }
 
 impl serde::Serialize for PaneState {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         match self {
-            PaneState::Attached  => s.serialize_str("attached"),
-            PaneState::Detached  => s.serialize_str("detached"),
+            PaneState::Attached => s.serialize_str("attached"),
+            PaneState::Detached => s.serialize_str("detached"),
         }
     }
 }

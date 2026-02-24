@@ -1,30 +1,39 @@
 pub mod discovery;
 pub mod pipe_reader;
 
-use regex::Regex;
 use once_cell::sync::Lazy;
+use regex::Regex;
 use tokio::sync::oneshot;
 use tracing::{info, warn};
 
 use crate::broadcaster::Broadcaster;
-use crate::config::Config;
+use crate::config::{Config, ProjectSource};
 use crate::registry::PaneRegistry;
 use crate::types::{EventType, PaneEvent, PaneId};
 
-static PANE_ID_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^[A-Za-z0-9_\-.]+:\d+\.\d+$").unwrap()
-});
+static PANE_ID_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[A-Za-z0-9_\-.]+:\d+\.\d+$").unwrap());
 
 #[derive(Clone)]
 pub struct TmuxManager {
-    config:      Config,
-    registry:    PaneRegistry,
+    config: Config,
+    source: ProjectSource,
+    registry: PaneRegistry,
     broadcaster: Broadcaster,
 }
 
 impl TmuxManager {
-    pub fn new(config: Config, registry: PaneRegistry, broadcaster: Broadcaster) -> Self {
-        Self { config, registry, broadcaster }
+    pub fn new(
+        config: Config,
+        source: ProjectSource,
+        registry: PaneRegistry,
+        broadcaster: Broadcaster,
+    ) -> Self {
+        Self {
+            config,
+            source,
+            registry,
+            broadcaster,
+        }
     }
 
     /// Validate pane_id to prevent shell injection.
@@ -32,7 +41,9 @@ impl TmuxManager {
         if PANE_ID_RE.is_match(pane_id) {
             Ok(())
         } else {
-            Err(format!("Invalid pane_id '{pane_id}': must match session:window.pane"))
+            Err(format!(
+                "Invalid pane_id '{pane_id}': must match session:window.pane"
+            ))
         }
     }
 
@@ -49,7 +60,8 @@ impl TmuxManager {
 
         // Create pipe directory
         let pipe_dir = self.config.pipe_dir();
-        tokio::fs::create_dir_all(&pipe_dir).await
+        tokio::fs::create_dir_all(&pipe_dir)
+            .await
             .map_err(|e| format!("Cannot create pipe dir: {e}"))?;
 
         let fifo_path = pipe_dir.join(format!("{stream_id}.fifo"));
@@ -73,19 +85,22 @@ impl TmuxManager {
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
         self.registry.set_attached(pane_id, shutdown_tx);
 
-        let pane_id_owned  = pane_id.clone();
+        let pane_id_owned = pane_id.clone();
         let fifo_path_copy = fifo_path.clone();
-        let registry_copy  = self.registry.clone();
-        let bcast_copy     = self.broadcaster.clone();
+        let source = self.source;
+        let registry_copy = self.registry.clone();
+        let bcast_copy = self.broadcaster.clone();
 
         tokio::spawn(async move {
             pipe_reader::run(
                 pane_id_owned,
                 fifo_path_copy,
+                source,
                 registry_copy,
                 bcast_copy,
                 shutdown_rx,
-            ).await;
+            )
+            .await;
         });
 
         // Close any stale pipe-pane from previous runs before attaching new one
@@ -110,7 +125,7 @@ impl TmuxManager {
         // Emit PaneRegistered event
         let event = PaneEvent {
             stream_id: stream_id.clone(),
-            pane_id:   pane_id.clone(),
+            pane_id: pane_id.clone(),
             timestamp: chrono::Utc::now().timestamp_millis(),
             event_type: EventType::PaneRegistered { label },
         };
@@ -147,9 +162,11 @@ impl TmuxManager {
         // Emit unregistered event
         let event = PaneEvent {
             stream_id: stream_id.clone(),
-            pane_id:   pane_id.clone(),
+            pane_id: pane_id.clone(),
             timestamp: chrono::Utc::now().timestamp_millis(),
-            event_type: EventType::PaneUnregistered { reason: "detached".to_string() },
+            event_type: EventType::PaneUnregistered {
+                reason: "detached".to_string(),
+            },
         };
         self.broadcaster.send(event);
 

@@ -1,6 +1,6 @@
+use crate::types::{PaneEvent, StreamId};
 use std::collections::VecDeque;
 use tokio::sync::oneshot;
-use crate::types::{PaneEvent, StreamId};
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PaneState {
@@ -9,15 +9,15 @@ pub enum PaneState {
 }
 
 pub struct PaneEntry {
-    pub stream_id:    StreamId,
-    pub label:        Option<String>,
-    pub state:        PaneState,
-    pub line_count:   u64,
+    pub stream_id: StreamId,
+    pub label: Option<String>,
+    pub state: PaneState,
+    pub line_count: u64,
     /// Bounded replay buffer
-    pub replay:       VecDeque<PaneEvent>,
-    pub replay_cap:   usize,
+    pub replay: VecDeque<PaneEvent>,
+    pub replay_cap: usize,
     /// Signal sender to stop the pipe reader task
-    pub shutdown_tx:  Option<oneshot::Sender<()>>,
+    pub shutdown_tx: Option<oneshot::Sender<()>>,
 }
 
 impl PaneEntry {

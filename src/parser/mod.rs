@@ -1,14 +1,14 @@
 pub mod performer;
 pub mod semantic;
 
-use vte::Parser;
-use performer::BotPerformer;
 use crate::types::AnsiStyle;
+use performer::BotPerformer;
+use vte::Parser;
 
 /// Parse a raw terminal line (may contain ANSI escapes) into clean text + style.
 pub fn parse_ansi(raw: &str) -> (String, AnsiStyle) {
-    let mut parser   = Parser::new();
-    let mut perf     = BotPerformer::new();
+    let mut parser = Parser::new();
+    let mut perf = BotPerformer::new();
 
     for byte in raw.bytes() {
         parser.advance(&mut perf, byte);

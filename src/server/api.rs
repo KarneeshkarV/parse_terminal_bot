@@ -7,12 +7,14 @@ use axum::{
 use serde::Deserialize;
 use tracing::warn;
 
+use crate::config::ProjectSource;
 use crate::tmux::TmuxManager;
 use crate::types::PaneId;
 
 #[derive(Clone)]
 pub struct AppState {
-    pub manager:         TmuxManager,
+    pub manager: TmuxManager,
+    pub source: ProjectSource,
     pub trades_data_dir: String,
 }
 
@@ -21,7 +23,7 @@ pub struct AppState {
 #[derive(Deserialize)]
 pub struct RegisterRequest {
     pub pane_id: PaneId,
-    pub label:   Option<String>,
+    pub label: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -44,12 +46,16 @@ pub async fn register_pane(
 ) -> impl IntoResponse {
     match state.manager.attach(&req.pane_id, req.label).await {
         Ok(()) => {
-            let stream_id = state.manager.registry()
+            let stream_id = state
+                .manager
+                .registry()
                 .stream_id(&req.pane_id)
                 .unwrap_or_default();
             (
                 StatusCode::OK,
-                Json(serde_json::json!({ "ok": true, "pane_id": req.pane_id, "stream_id": stream_id })),
+                Json(
+                    serde_json::json!({ "ok": true, "pane_id": req.pane_id, "stream_id": stream_id }),
+                ),
             )
         }
         Err(e) => {
@@ -83,7 +89,10 @@ pub async fn replay_pane(
                 let skip = lines.len().saturating_sub(n);
                 lines = lines.into_iter().skip(skip).collect();
             }
-            (StatusCode::OK, Json(serde_json::json!({ "ok": true, "lines": lines, "total": total })))
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({ "ok": true, "lines": lines, "total": total })),
+            )
         }
         None => (
             StatusCode::NOT_FOUND,

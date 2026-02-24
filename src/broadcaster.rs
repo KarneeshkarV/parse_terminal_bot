@@ -1,5 +1,5 @@
-use tokio::sync::broadcast;
 use crate::types::PaneEvent;
+use tokio::sync::broadcast;
 
 /// A thin wrapper around tokio::sync::broadcast for fan-out delivery.
 #[derive(Clone)]

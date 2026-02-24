@@ -22,12 +22,12 @@ pub fn build_router(state: AppState, static_dir: &str) -> Router {
 
     Router::new()
         // REST API
-        .route("/api/panes",              get(api::list_panes).post(api::register_pane))
-        .route("/api/panes/:id",          delete(api::unregister_pane))
-        .route("/api/panes/:id/replay",   get(api::replay_pane))
-        .route("/api/trades",             get(trades::get_trades))
+        .route("/api/panes", get(api::list_panes).post(api::register_pane))
+        .route("/api/panes/:id", delete(api::unregister_pane))
+        .route("/api/panes/:id/replay", get(api::replay_pane))
+        .route("/api/trades", get(trades::get_trades))
         // WebSocket
-        .route("/ws",                     get(ws_handler))
+        .route("/ws", get(ws_handler))
         // Static frontend
         .nest_service("/", ServeDir::new(static_dir))
         .layer(cors)
